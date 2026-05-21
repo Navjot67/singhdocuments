@@ -1,0 +1,742 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Plate Rental Agreement PDF</title>
+  <style>
+    :root {
+      font-family: Inter, "Segoe UI", Arial, sans-serif;
+      color: #e5e7eb;
+      background: #0b1020;
+    }
+    body {
+      margin: 0;
+      padding: 24px;
+      min-height: 100vh;
+      background:
+        radial-gradient(1200px 600px at 10% -10%, rgba(99, 102, 241, 0.25), transparent 60%),
+        radial-gradient(900px 500px at 100% 0%, rgba(14, 165, 233, 0.22), transparent 50%),
+        linear-gradient(160deg, #070b16 0%, #0b1020 40%, #121a32 100%);
+      position: relative;
+      overflow-x: hidden;
+    }
+    body::before,
+    body::after {
+      content: "";
+      position: fixed;
+      width: 360px;
+      height: 360px;
+      border-radius: 999px;
+      z-index: -1;
+      filter: blur(40px);
+      opacity: 0.35;
+      animation: floatBlob 13s ease-in-out infinite;
+    }
+    body::before {
+      background: #6366f1;
+      top: -120px;
+      left: -100px;
+    }
+    body::after {
+      background: #06b6d4;
+      right: -110px;
+      bottom: -100px;
+      animation-delay: -6s;
+    }
+    .wrap {
+      max-width: 980px;
+      margin: 0 auto;
+      background: linear-gradient(160deg, rgba(255, 255, 255, 0.12), rgba(255, 255, 255, 0.06));
+      border: 1px solid rgba(255, 255, 255, 0.2);
+      border-radius: 18px;
+      padding: 28px;
+      box-shadow: 0 30px 60px rgba(0, 0, 0, 0.35);
+      backdrop-filter: blur(12px);
+      animation: riseIn 0.8s ease-out;
+    }
+    h1 {
+      margin-top: 0;
+      font-size: 30px;
+      margin-bottom: 8px;
+      letter-spacing: 0.2px;
+    }
+    p {
+      margin-top: 0;
+      color: #cbd5e1;
+      margin-bottom: 20px;
+    }
+    .grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 16px;
+    }
+    label {
+      display: block;
+      font-size: 13px;
+      font-weight: 700;
+      margin-bottom: 7px;
+      color: #dbeafe;
+      letter-spacing: 0.2px;
+    }
+    input {
+      width: 100%;
+      box-sizing: border-box;
+      padding: 12px 13px;
+      border: 1px solid rgba(148, 163, 184, 0.45);
+      border-radius: 10px;
+      font-size: 14px;
+      color: #f8fafc;
+      background: rgba(15, 23, 42, 0.7);
+      transition: border-color 180ms ease, box-shadow 180ms ease, transform 180ms ease;
+    }
+    #plate_number {
+      text-transform: uppercase;
+    }
+    input::placeholder {
+      color: #94a3b8;
+    }
+    input:hover {
+      border-color: rgba(125, 211, 252, 0.7);
+    }
+    input:focus {
+      outline: none;
+      border-color: #38bdf8;
+      box-shadow: 0 0 0 3px rgba(56, 189, 248, 0.2);
+      transform: translateY(-1px);
+    }
+    .full {
+      grid-column: 1 / -1;
+    }
+    button {
+      margin-top: 18px;
+      border: 0;
+      border-radius: 12px;
+      background: linear-gradient(135deg, #2563eb, #06b6d4);
+      color: #f8fafc;
+      padding: 12px 18px;
+      font-size: 14px;
+      font-weight: 700;
+      cursor: pointer;
+      transition: transform 180ms ease, box-shadow 180ms ease, filter 180ms ease;
+      box-shadow: 0 10px 20px rgba(14, 165, 233, 0.25);
+    }
+    button:hover {
+      transform: translateY(-1px);
+      filter: brightness(1.05);
+      box-shadow: 0 14px 28px rgba(14, 165, 233, 0.32);
+    }
+    button:active {
+      transform: translateY(0);
+    }
+    button:disabled {
+      opacity: 0.7;
+      cursor: wait;
+    }
+    .payment-banner {
+      margin: 0 0 14px;
+      padding: 10px 12px;
+      border-radius: 10px;
+      font-size: 13px;
+      font-weight: 600;
+      border: 1px solid transparent;
+    }
+    .payment-banner.success {
+      color: #dcfce7;
+      background: rgba(22, 163, 74, 0.2);
+      border-color: rgba(74, 222, 128, 0.45);
+    }
+    .payment-banner.error {
+      color: #fee2e2;
+      background: rgba(220, 38, 38, 0.2);
+      border-color: rgba(248, 113, 113, 0.45);
+    }
+    .payment-banner.info {
+      color: #dbeafe;
+      background: rgba(37, 99, 235, 0.2);
+      border-color: rgba(96, 165, 250, 0.45);
+    }
+    .preview-wrap {
+      margin-top: 20px;
+      border: 1px solid rgba(148, 163, 184, 0.45);
+      border-radius: 14px;
+      overflow: hidden;
+      background: rgba(8, 47, 73, 0.22);
+      box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.05);
+    }
+    .preview-head {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding: 10px 12px;
+      border-bottom: 1px solid rgba(148, 163, 184, 0.35);
+      font-size: 13px;
+      color: #cbd5e1;
+      background: rgba(15, 23, 42, 0.55);
+    }
+    .preview-frame {
+      width: 100%;
+      height: 640px;
+      border: 0;
+      display: block;
+      background: #f8fafc;
+    }
+    .preview-canvas-wrap {
+      padding: 14px;
+      background: rgba(15, 23, 42, 0.42);
+      display: flex;
+      justify-content: center;
+      overflow: auto;
+      position: relative;
+    }
+    .preview-canvas {
+      max-width: 100%;
+      border-radius: 8px;
+      box-shadow: 0 8px 24px rgba(15, 23, 42, 0.35);
+      background: #fff;
+    }
+    .preview-fallback {
+      width: 100%;
+      height: 640px;
+      border: 0;
+      display: none;
+      background: #fff;
+    }
+    .preview-overlay {
+      position: absolute;
+      inset: 14px;
+      pointer-events: none;
+      z-index: 3;
+      border-radius: 8px;
+      overflow: hidden;
+      background-image:
+        repeating-linear-gradient(
+          -30deg,
+          rgba(220, 38, 38, 0.14) 0px,
+          rgba(220, 38, 38, 0.14) 2px,
+          transparent 2px,
+          transparent 62px
+        );
+      mix-blend-mode: multiply;
+    }
+    .preview-overlay::before {
+      content: "PREVIEW ONLY • DOWNLOAD FOR OFFICIAL COPY";
+      position: absolute;
+      left: 50%;
+      top: 50%;
+      transform: translate(-50%, -50%) rotate(-20deg);
+      font-size: clamp(18px, 3vw, 32px);
+      font-weight: 900;
+      letter-spacing: 1.8px;
+      color: rgba(220, 38, 38, 0.28);
+      white-space: nowrap;
+      text-shadow: 0 1px 2px rgba(255, 255, 255, 0.5);
+      animation: pulseMark 2.2s ease-in-out infinite;
+    }
+    .title-row {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 12px;
+      margin-bottom: 8px;
+    }
+    .badge {
+      font-size: 12px;
+      font-weight: 700;
+      color: #dbeafe;
+      background: rgba(59, 130, 246, 0.22);
+      border: 1px solid rgba(125, 211, 252, 0.45);
+      border-radius: 999px;
+      padding: 6px 10px;
+      white-space: nowrap;
+    }
+    @keyframes riseIn {
+      from {
+        opacity: 0;
+        transform: translateY(12px);
+      }
+      to {
+        opacity: 1;
+        transform: translateY(0);
+      }
+    }
+    @keyframes floatBlob {
+      0%, 100% {
+        transform: translate(0, 0);
+      }
+      50% {
+        transform: translate(22px, 20px);
+      }
+    }
+    @keyframes pulseMark {
+      0%, 100% {
+        opacity: 0.68;
+      }
+      50% {
+        opacity: 1;
+      }
+    }
+    @media (max-width: 900px) {
+      .grid {
+        grid-template-columns: 1fr;
+      }
+      .wrap {
+        padding: 20px;
+      }
+      .preview-frame {
+        height: 520px;
+      }
+    }
+  </style>
+</head>
+<body>
+  <main class="wrap">
+    <div class="title-row">
+      <h1>Rental Agreement PDF Editor</h1>
+      <span class="badge">Live Preview + Smart Formatting</span>
+    </div>
+    <p>Edit details, pay securely with Stripe, then download your final PDF.</p>
+    <p id="payment-banner" class="payment-banner" hidden></p>
+
+    <form id="pdf-form" class="grid">
+      <div class="full">
+        <label for="plate_owner_name">Plate Owner Name</label>
+        <input id="plate_owner_name" name="plate_owner_name" />
+      </div>
+      <div class="full">
+        <label for="plate_renter_name">Plate Renter Name</label>
+        <input id="plate_renter_name" name="plate_renter_name" />
+      </div>
+      <div>
+        <label for="agreement_date">Agreement Date</label>
+        <input id="agreement_date" name="agreement_date" />
+      </div>
+      <div>
+        <label for="plate_number">Plate Number</label>
+        <input id="plate_number" name="plate_number" />
+      </div>
+      <div>
+        <label for="start_date">Start Date</label>
+        <input id="start_date" name="start_date" />
+      </div>
+      <div>
+        <label for="end_date">End Date</label>
+        <input id="end_date" name="end_date" />
+      </div>
+      <div>
+        <label for="rent_amount">Rent Amount</label>
+        <input id="rent_amount" name="rent_amount" />
+      </div>
+      <div class="full">
+        <button type="submit" id="pay-download-btn">Pay &amp; Download PDF</button>
+      </div>
+    </form>
+    <section class="preview-wrap">
+      <div class="preview-head">
+        <span>Live PDF Preview</span>
+        <span id="preview-status">Loading...</span>
+      </div>
+      <div class="preview-canvas-wrap">
+        <canvas id="pdf-preview-canvas" class="preview-canvas"></canvas>
+        <iframe id="pdf-preview-fallback" class="preview-fallback" title="PDF Preview"></iframe>
+        <div class="preview-overlay" aria-hidden="true"></div>
+      </div>
+    </section>
+  </main>
+
+  <script src="https://unpkg.com/pdf-lib/dist/pdf-lib.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/4.5.136/pdf.min.js"></script>
+  <script>
+    const { StandardFonts } = PDFLib;
+    const formElement = document.getElementById("pdf-form");
+    const payDownloadBtn = document.getElementById("pay-download-btn");
+    const paymentBanner = document.getElementById("payment-banner");
+    const previewCanvas = document.getElementById("pdf-preview-canvas");
+    const previewFallback = document.getElementById("pdf-preview-fallback");
+    const previewStatus = document.getElementById("preview-status");
+    const TEMPLATE_PATH = "./agreement-template.pdf";
+    const REQUIRED_FIELDS = [
+      "plate_owner_name",
+      "plate_renter_name",
+      "agreement_date",
+      "plate_number",
+      "start_date",
+      "end_date",
+      "rent_amount"
+    ];
+    let priceLabel = "$9.99";
+    let paymentsEnabled = false;
+    const FIELD_NAMES = [
+      "plate_owner_name",
+      "plate_renter_name",
+      "agreement_date",
+      "plate_number",
+      "start_date",
+      "end_date",
+      "rent_amount",
+      "renter_signature_name",
+      "owner_signature_name"
+    ];
+    let latestPdfBytes = null;
+    let previewTimer = null;
+    let lastFallbackUrl = null;
+    const NAME_FIELDS = [
+      "plate_owner_name",
+      "plate_renter_name",
+      "owner_signature_name",
+      "renter_signature_name"
+    ];
+    const DATE_FIELDS = ["agreement_date", "start_date", "end_date"];
+    const FIELD_MAX_WIDTH = {
+      plate_owner_name: 360,
+      plate_renter_name: 360,
+      agreement_date: 120,
+      plate_number: 80,
+      start_date: 110,
+      end_date: 110,
+      rent_amount: 55,
+      renter_signature_name: 220,
+      owner_signature_name: 220
+    };
+
+    function fitTextToField(field, text, maxWidth, baseFontSize = 10) {
+      const value = text || "";
+      let fontSize = baseFontSize;
+      const approxCharWidth = baseFontSize * 0.52;
+      const neededWidth = value.length * approxCharWidth;
+      if (neededWidth > maxWidth && value.length > 0) {
+        fontSize = Math.max(6, (maxWidth / value.length) / 0.52);
+      }
+      field.setFontSize(fontSize);
+      field.setText(value);
+    }
+
+    function collectValues() {
+      const values = Object.fromEntries(new FormData(formElement).entries());
+      values.owner_signature_name = values.plate_owner_name || "";
+      values.renter_signature_name = values.plate_renter_name || "";
+      return values;
+    }
+
+    function showBanner(message, type = "info") {
+      paymentBanner.hidden = false;
+      paymentBanner.className = `payment-banner ${type}`;
+      paymentBanner.textContent = message;
+    }
+
+    function hideBanner() {
+      paymentBanner.hidden = true;
+      paymentBanner.textContent = "";
+    }
+
+    function validateRequiredFields(values) {
+      const missing = REQUIRED_FIELDS.filter((field) => !String(values[field] || "").trim());
+      if (missing.length > 0) {
+        throw new Error("Please fill all required fields before payment.");
+      }
+    }
+
+    function applyMetadataToForm(metadata) {
+      for (const field of REQUIRED_FIELDS) {
+        const input = document.getElementsByName(field)[0];
+        if (input && metadata[field]) {
+          input.value = metadata[field];
+        }
+      }
+      syncSignatureNames();
+    }
+
+    async function downloadPdf() {
+      const finalBytes = await buildPdfBytes(collectValues(), { flatten: true });
+      const blob = new Blob([finalBytes], { type: "application/pdf" });
+      const url = URL.createObjectURL(blob);
+      const link = document.createElement("a");
+      link.href = url;
+      link.download = "Plate-Rental-Agreement.pdf";
+      link.click();
+      URL.revokeObjectURL(url);
+    }
+
+    async function startCheckout() {
+      const values = collectValues();
+      validateRequiredFields(values);
+
+      const response = await fetch("/api/create-checkout-session", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(values)
+      });
+      const data = await response.json();
+      if (!response.ok) {
+        throw new Error(data.error || "Unable to start payment.");
+      }
+      window.location.href = data.url;
+    }
+
+    async function handlePaymentReturn() {
+      const params = new URLSearchParams(window.location.search);
+      const sessionId = params.get("session_id");
+      const canceled = params.get("canceled");
+
+      if (canceled === "1") {
+        showBanner("Payment canceled. You can try again when ready.", "error");
+        window.history.replaceState({}, "", window.location.pathname);
+        return;
+      }
+      if (!sessionId) {
+        return;
+      }
+
+      showBanner("Verifying payment...", "info");
+      const response = await fetch(`/api/verify-payment?session_id=${encodeURIComponent(sessionId)}`);
+      const data = await response.json();
+      if (!response.ok || !data.paid) {
+        showBanner(data.error || "Payment not completed yet.", "error");
+        window.history.replaceState({}, "", window.location.pathname);
+        return;
+      }
+
+      applyMetadataToForm(data.metadata || {});
+      await refreshPreview();
+      await downloadPdf();
+      showBanner("Payment successful. Your PDF has been downloaded.", "success");
+      window.history.replaceState({}, "", window.location.pathname);
+    }
+
+    async function loadPaymentConfig() {
+      try {
+        const response = await fetch("/api/config");
+        const data = await response.json();
+        if (response.ok) {
+          priceLabel = data.priceLabel || priceLabel;
+          paymentsEnabled = Boolean(data.paymentsEnabled);
+          payDownloadBtn.textContent = `Pay ${priceLabel} & Download PDF`;
+        }
+      } catch (_error) {
+        payDownloadBtn.textContent = "Pay & Download PDF";
+      }
+    }
+
+    function toTitleCase(value) {
+      return value
+        .trim()
+        .toLowerCase()
+        .split(/\s+/)
+        .filter(Boolean)
+        .map((part) => part.charAt(0).toUpperCase() + part.slice(1))
+        .join(" ");
+    }
+
+    function formatDate(value) {
+      const input = value.trim();
+      if (!input) return "";
+      let parsed = null;
+
+      // Support compact numeric date like MMDDYYYY (e.g. 04292005).
+      const digitsOnly = input.replace(/\D/g, "");
+      if (digitsOnly.length === 8) {
+        const mm = Number.parseInt(digitsOnly.slice(0, 2), 10);
+        const dd = Number.parseInt(digitsOnly.slice(2, 4), 10);
+        const yyyy = Number.parseInt(digitsOnly.slice(4, 8), 10);
+        const candidate = new Date(yyyy, mm - 1, dd);
+        if (
+          candidate.getFullYear() === yyyy &&
+          candidate.getMonth() === mm - 1 &&
+          candidate.getDate() === dd
+        ) {
+          parsed = candidate;
+        }
+      }
+
+      // Fallback to browser parser for inputs like 2026-05-20 or 05/20/2026.
+      if (!parsed) {
+        const fallback = new Date(input);
+        if (!Number.isNaN(fallback.getTime())) {
+          parsed = fallback;
+        }
+      }
+
+      if (!parsed) return value;
+      const month = parsed.toLocaleString("en-US", { month: "long" });
+      const day = String(parsed.getDate()).padStart(2, "0");
+      const year = parsed.getFullYear();
+      return `${month} ${day}, ${year}`;
+    }
+
+    function formatCurrency(value) {
+      const digits = value.replace(/[^0-9.]/g, "");
+      if (!digits) return "";
+      const amount = Number.parseFloat(digits);
+      if (Number.isNaN(amount)) return value;
+      return new Intl.NumberFormat("en-US", {
+        style: "currency",
+        currency: "USD",
+        maximumFractionDigits: amount % 1 === 0 ? 0 : 2
+      }).format(amount);
+    }
+
+    function normalizeField(fieldName, value) {
+      if (fieldName === "plate_number") {
+        return value.toUpperCase().trim();
+      }
+      if (NAME_FIELDS.includes(fieldName)) {
+        return toTitleCase(value);
+      }
+      if (DATE_FIELDS.includes(fieldName)) {
+        return formatDate(value);
+      }
+      if (fieldName === "rent_amount") {
+        return formatCurrency(value);
+      }
+      return value;
+    }
+
+    function syncSignatureNames() {
+      // Signature names are auto-derived from owner/renter names.
+      // No visible inputs needed.
+    }
+
+    async function buildPdfBytes(values, options = {}) {
+      const { flatten = false } = options;
+      const sourcePdf = await fetch(TEMPLATE_PATH);
+      if (!sourcePdf.ok) {
+        throw new Error("Could not load template PDF.");
+      }
+      const sourceBytes = await sourcePdf.arrayBuffer();
+      const pdfDoc = await PDFLib.PDFDocument.load(sourceBytes);
+      const pdfForm = pdfDoc.getForm();
+      const boldFont = await pdfDoc.embedFont(StandardFonts.HelveticaBold);
+
+      for (const fieldName of FIELD_NAMES) {
+        const field = pdfForm.getTextField(fieldName);
+        const baseSize = ["plate_owner_name", "plate_renter_name", "agreement_date"].includes(fieldName) ? 9 : 10;
+        fitTextToField(
+          field,
+          values[fieldName] || "",
+          FIELD_MAX_WIDTH[fieldName] || 120,
+          baseSize
+        );
+      }
+
+      // Force consistent bold appearance after edits across viewers.
+      pdfForm.updateFieldAppearances(boldFont);
+      if (flatten) {
+        // Bake field text into the PDF page so style is preserved everywhere.
+        pdfForm.flatten();
+      }
+      return pdfDoc.save();
+    }
+
+    async function renderPreview(pdfBytes) {
+      if (!window.pdfjsLib) {
+        throw new Error("Preview library failed to load.");
+      }
+      window.pdfjsLib.GlobalWorkerOptions.workerSrc =
+        "https://cdnjs.cloudflare.com/ajax/libs/pdf.js/4.5.136/pdf.worker.min.js";
+
+      const loadingTask = window.pdfjsLib.getDocument({ data: pdfBytes });
+      const pdf = await loadingTask.promise;
+      const page = await pdf.getPage(1);
+      const containerWidth = previewCanvas.parentElement.clientWidth - 20;
+      const baseViewport = page.getViewport({ scale: 1 });
+      const scale = Math.max(0.6, containerWidth / baseViewport.width);
+      const viewport = page.getViewport({ scale });
+
+      const ctx = previewCanvas.getContext("2d");
+      previewCanvas.width = viewport.width;
+      previewCanvas.height = viewport.height;
+      await page.render({ canvasContext: ctx, viewport }).promise;
+      await pdf.cleanup();
+      await pdf.destroy();
+      previewCanvas.style.display = "block";
+      previewFallback.style.display = "none";
+    }
+
+    function renderFallback(pdfBytes) {
+      const blob = new Blob([pdfBytes], { type: "application/pdf" });
+      const url = URL.createObjectURL(blob);
+      previewFallback.src = `${url}#toolbar=0&navpanes=0&scrollbar=0`;
+      if (lastFallbackUrl) {
+        URL.revokeObjectURL(lastFallbackUrl);
+      }
+      lastFallbackUrl = url;
+      previewCanvas.style.display = "none";
+      previewFallback.style.display = "block";
+    }
+
+    async function refreshPreview() {
+      previewStatus.textContent = "Updating...";
+      try {
+        const values = collectValues();
+        latestPdfBytes = await buildPdfBytes(values);
+        await renderPreview(latestPdfBytes);
+        previewStatus.textContent = "Up to date";
+      } catch (error) {
+        if (latestPdfBytes) {
+          renderFallback(latestPdfBytes);
+          previewStatus.textContent = "Preview mode";
+        } else {
+          previewStatus.textContent = "Preview failed";
+        }
+        console.error("PDF preview error:", error);
+      }
+    }
+
+    function queuePreviewRefresh() {
+      if (previewTimer) {
+        clearTimeout(previewTimer);
+      }
+      previewTimer = setTimeout(refreshPreview, 250);
+    }
+
+    formElement.addEventListener("input", (event) => {
+      if (event.target.id === "plate_owner_name" || event.target.id === "plate_renter_name") {
+        syncSignatureNames();
+      }
+      latestPdfBytes = null;
+      queuePreviewRefresh();
+    });
+
+    formElement.addEventListener("blur", (event) => {
+      if (!event.target || event.target.tagName !== "INPUT") {
+        return;
+      }
+      const normalized = normalizeField(event.target.name, event.target.value);
+      event.target.value = normalized;
+      if (event.target.id === "plate_owner_name" || event.target.id === "plate_renter_name") {
+        syncSignatureNames();
+      }
+      latestPdfBytes = null;
+      queuePreviewRefresh();
+    }, true);
+
+    formElement.addEventListener("submit", async (event) => {
+      event.preventDefault();
+      payDownloadBtn.disabled = true;
+      payDownloadBtn.textContent = "Redirecting to Stripe...";
+
+      try {
+        if (!paymentsEnabled) {
+          throw new Error("Payments are not configured. Add Stripe keys to .env and restart server.");
+        }
+        await startCheckout();
+      } catch (error) {
+        showBanner(error.message, "error");
+        payDownloadBtn.disabled = false;
+        payDownloadBtn.textContent = `Pay ${priceLabel} & Download PDF`;
+      }
+    });
+
+    syncSignatureNames();
+    for (const fieldName of [...NAME_FIELDS, ...DATE_FIELDS, "rent_amount"]) {
+      const input = document.getElementsByName(fieldName)[0];
+      if (input) {
+        input.value = normalizeField(fieldName, input.value);
+      }
+    }
+    loadPaymentConfig();
+    handlePaymentReturn();
+    refreshPreview();
+  </script>
+</body>
+</html>

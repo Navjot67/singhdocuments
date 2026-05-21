@@ -1,0 +1,92 @@
+# Deploy to Render (singhdocuments.com)
+
+## 1) Push code to GitHub
+
+1. Create a GitHub repo (example: `singhdocuments`)
+2. Push this project to GitHub
+
+```bash
+git init
+git add .
+git commit -m "Initial deploy"
+git branch -M main
+git remote add origin https://github.com/YOUR_USER/singhdocuments.git
+git push -u origin main
+```
+
+## 2) Create Render Web Service
+
+1. Go to [https://dashboard.render.com](https://dashboard.render.com)
+2. Click **New +** → **Blueprint** (or **Web Service**)
+3. Connect your GitHub repo
+4. Render reads `render.yaml` automatically
+
+If creating manually:
+
+- **Runtime:** Python 3
+- **Build Command:** `pip install -r requirements.txt`
+- **Start Command:** `gunicorn --bind 0.0.0.0:$PORT server:app`
+
+## 3) Set environment variables (Render → Environment)
+
+| Key | Value |
+|---|---|
+| `STRIPE_SECRET_KEY` | `sk_live_...` (or `sk_test_...` for testing) |
+| `STRIPE_PUBLISHABLE_KEY` | `pk_live_...` (or `pk_test_...`) |
+| `STRIPE_PRICE_CENTS` | `999` (means $9.99) |
+| `BASE_URL` | `https://singhdocuments.com` |
+
+Important: `BASE_URL` must match your live domain exactly (https, no trailing slash).
+
+## 4) Deploy
+
+Click **Deploy**.  
+Your app will be live at a Render URL like:
+
+- `https://singhdocuments.onrender.com`
+
+Test payment there first.
+
+## 5) Connect Hostinger domain
+
+In **Render → your service → Settings → Custom Domains**:
+
+1. Add `singhdocuments.com`
+2. Add `www.singhdocuments.com`
+
+In **Hostinger DNS** for `singhdocuments.com`:
+
+### For `www` (recommended first)
+
+- Type: `CNAME`
+- Name: `www`
+- Target: value shown by Render (example: `singhdocuments.onrender.com`)
+
+### For root `@`
+
+Use the exact record Render shows (often `A` records or `ANAME/ALIAS` if Hostinger supports it).
+
+After DNS propagates, Render will issue free SSL automatically.
+
+## 6) Stripe live settings
+
+In Stripe Dashboard (Live mode):
+
+- Use live API keys in Render env vars
+- Checkout success/cancel URLs are generated from `BASE_URL`
+- Test card only works in test mode
+
+## 7) Verify production flow
+
+1. Open `https://singhdocuments.com`
+2. Fill all fields
+3. Click **Pay & Download**
+4. Complete Stripe payment
+5. Confirm redirect back and PDF download
+
+## Troubleshooting
+
+- **Payment works locally but not live:** check `BASE_URL` and Stripe keys (live vs test)
+- **502 on Render:** open Logs tab, confirm start command uses `$PORT`
+- **Preview works, pay fails:** Stripe env vars missing in Render
+- **Domain not loading:** DNS not propagated yet (wait up to 24h, usually faster)
