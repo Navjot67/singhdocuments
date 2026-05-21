@@ -66,6 +66,31 @@ FORM_FIELDS = [
 
 PDF_FIELDS = FORM_FIELDS + ["owner_signature_name", "renter_signature_name"]
 CHECKOUT_FIELDS = FORM_FIELDS + ["customer_email"]
+INTRO_FIELDS = {"plate_owner_name", "plate_renter_name", "agreement_date"}
+
+
+def fit_font_size(text: str, base_size: float, max_width: float) -> float:
+    if not text:
+        return base_size
+    approx_char_width = base_size * 0.52
+    needed_width = len(text) * approx_char_width
+    if needed_width > max_width:
+        return max(6.0, (max_width / len(text)) / 0.52)
+    return base_size
+
+
+def fill_widget_bold(widget, value: str) -> None:
+    name = widget.field_name or ""
+    base_size = 9 if name in INTRO_FIELDS else 10
+    font_size = fit_font_size(value, base_size, widget.rect.width - 2)
+    widget.field_value = value
+    widget.text_font = "HeBo"
+    widget.text_fontsize = font_size
+    widget.text_color = (0, 0, 0)
+    widget.border_width = 0
+    widget.border_color = None
+    widget.fill_color = None
+    widget.update()
 
 
 def is_valid_email(value: str) -> bool:
@@ -100,11 +125,14 @@ def build_pdf_bytes(form_data: dict) -> bytes:
 
     doc = fitz.open(TEMPLATE_PDF)
     for page in doc:
-        for widget in page.widgets() or []:
+        widgets = list(page.widgets() or [])
+        for widget in widgets:
             name = widget.field_name
-            if name and name in data:
-                widget.field_value = str(data.get(name, ""))
-                widget.update()
+            if name and name in PDF_FIELDS:
+                fill_widget_bold(widget, str(data.get(name, "")))
+        # Flatten fields into page so emailed PDF keeps bold static text.
+        for widget in widgets:
+            page.delete_widget(widget)
 
     pdf_bytes = doc.tobytes(garbage=4, deflate=True)
     doc.close()
