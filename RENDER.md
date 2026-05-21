@@ -33,7 +33,7 @@ If creating manually:
 |---|---|
 | `STRIPE_SECRET_KEY` | `sk_live_...` (or `sk_test_...` for testing) |
 | `STRIPE_PUBLISHABLE_KEY` | `pk_live_...` (or `pk_test_...`) |
-| `STRIPE_PRICE_CENTS` | `999` (means $9.99) |
+| `STRIPE_PRICE_CENTS` | `399` or `3.99` (means $3.99 — no commas) |
 | `BASE_URL` | `https://singhdocuments.com` |
 
 Important: `BASE_URL` must match your live domain exactly (https, no trailing slash).

@@ -11,7 +11,23 @@ BASE_DIR = Path(__file__).resolve().parent
 PUBLIC_DIR = BASE_DIR / "public"
 
 stripe.api_key = os.environ.get("STRIPE_SECRET_KEY", "")
-PRICE_CENTS = int(os.environ.get("STRIPE_PRICE_CENTS", "999"))
+
+
+def parse_price_cents(raw: str) -> int:
+    """Accept cents (399), dollars (3.99), or European format (3,99)."""
+    value = (raw or "999").strip()
+    if not value:
+        return 999
+    if "," in value and "." not in value and value.count(",") == 1:
+        value = value.replace(",", ".")
+    else:
+        value = value.replace(",", "")
+    if "." in value:
+        return int(round(float(value) * 100))
+    return int(value)
+
+
+PRICE_CENTS = parse_price_cents(os.environ.get("STRIPE_PRICE_CENTS", "999"))
 BASE_URL = os.environ.get("BASE_URL", "http://localhost:8000").rstrip("/")
 PORT = int(os.environ.get("PORT", "8000"))
 
