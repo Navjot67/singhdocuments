@@ -10,10 +10,12 @@ import urllib.request
 from email.mime.application import MIMEApplication
 from email.mime.multipart import MIMEMultipart
 from email.mime.text import MIMEText
+from io import BytesIO
 from pathlib import Path
 
-import fitz
 import stripe
+from pypdf import PdfReader, PdfWriter
+from pypdf.generic import NameObject, TextStringObject
 from dotenv import load_dotenv
 from flask import Flask, jsonify, request, send_from_directory
 
@@ -79,20 +81,6 @@ def fit_font_size(text: str, base_size: float, max_width: float) -> float:
     return base_size
 
 
-def fill_widget_bold(widget, value: str) -> None:
-    name = widget.field_name or ""
-    base_size = 9 if name in INTRO_FIELDS else 10
-    font_size = fit_font_size(value, base_size, widget.rect.width - 2)
-    widget.field_value = value
-    widget.text_font = "HeBo"
-    widget.text_fontsize = font_size
-    widget.text_color = (0, 0, 0)
-    widget.border_width = 0
-    widget.border_color = None
-    widget.fill_color = None
-    widget.update()
-
-
 def is_valid_email(value: str) -> bool:
     return bool(EMAIL_RE.match((value or "").strip()))
 
@@ -123,18 +111,29 @@ def build_pdf_bytes(form_data: dict) -> bytes:
     data["owner_signature_name"] = data.get("plate_owner_name", "")
     data["renter_signature_name"] = data.get("plate_renter_name", "")
 
-    doc = fitz.open(TEMPLATE_PDF)
-    for page in doc:
-        for widget in page.widgets() or []:
-            name = widget.field_name
-            if name and name in PDF_FIELDS:
-                fill_widget_bold(widget, str(data.get(name, "")))
+    values = {field: str(data.get(field, "")) for field in PDF_FIELDS}
 
-    # Keep filled widget appearances. delete_widget() + garbage collection
-    # (garbage>=1) strips the streams and produces a blank-looking PDF in mail clients.
-    pdf_bytes = doc.tobytes(deflate=True)
-    doc.close()
-    return pdf_bytes
+    reader = PdfReader(str(TEMPLATE_PDF))
+    writer = PdfWriter(clone_from=reader)
+    page = writer.pages[0]
+
+    # Set bold default appearance (HeBo) with fitted size before regenerating field AP streams.
+    for annot in page.get("/Annots", []):
+        obj = annot.get_object()
+        field_name = obj.get("/T")
+        if not field_name or field_name not in values:
+            continue
+        rect = obj.get("/Rect")
+        max_width = float(rect[2]) - float(rect[0]) - 2 if rect else 120.0
+        base_size = 9.0 if field_name in INTRO_FIELDS else 10.0
+        font_size = fit_font_size(values[field_name], base_size, max_width)
+        obj[NameObject("/DA")] = TextStringObject(f"/HeBo {font_size:.1f} Tf 0 g")
+
+    writer.update_page_form_field_values(page, values, auto_regenerate=True)
+
+    buffer = BytesIO()
+    writer.write(buffer)
+    return buffer.getvalue()
 
 
 def email_is_configured() -> bool:
