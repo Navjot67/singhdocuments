@@ -460,8 +460,11 @@
 
     function paymentSuccessMessage(data) {
       const email = data.metadata?.customer_email || collectValues().customer_email || "";
-      if (data.emailSent) {
+      if (data.emailSent === true) {
         return `Payment successful. PDF downloaded and emailed to ${email}.`;
+      }
+      if (data.emailSent === "pending") {
+        return `Payment successful. PDF downloaded. ${data.emailMessage || `Email is being sent to ${email}.`}`;
       }
       if (data.emailError) {
         return `Payment successful. PDF downloaded. Email not sent: ${data.emailError}`;

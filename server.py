@@ -1,6 +1,8 @@
+import logging
 import os
 import re
 import smtplib
+import threading
 from email.mime.application import MIMEApplication
 from email.mime.multipart import MIMEMultipart
 from email.mime.text import MIMEText
@@ -25,6 +27,8 @@ SMTP_PORT = int(os.environ.get("SMTP_PORT", "587"))
 SMTP_USER = os.environ.get("SMTP_USER", "")
 SMTP_PASSWORD = os.environ.get("SMTP_PASSWORD", "")
 EMAIL_FROM = os.environ.get("EMAIL_FROM", SMTP_USER)
+SMTP_TIMEOUT = int(os.environ.get("SMTP_TIMEOUT", "12"))
+SMTP_USE_SSL = os.environ.get("SMTP_USE_SSL", "").lower() in {"1", "true", "yes"}
 
 
 def parse_price_cents(raw: str) -> int:
@@ -133,14 +137,36 @@ def send_pdf_email(to_email: str, pdf_bytes: bytes, form_data: dict) -> None:
     attachment.add_header("Content-Disposition", "attachment", filename="Plate-Rental-Agreement.pdf")
     message.attach(attachment)
 
-    with smtplib.SMTP(SMTP_HOST, SMTP_PORT) as smtp:
+    if SMTP_USE_SSL:
+        with smtplib.SMTP_SSL(SMTP_HOST, SMTP_PORT, timeout=SMTP_TIMEOUT) as smtp:
+            smtp.login(SMTP_USER, SMTP_PASSWORD)
+            smtp.send_message(message)
+        return
+
+    with smtplib.SMTP(SMTP_HOST, SMTP_PORT, timeout=SMTP_TIMEOUT) as smtp:
         smtp.starttls()
         smtp.login(SMTP_USER, SMTP_PASSWORD)
         smtp.send_message(message)
 
 
+def mark_email_sent(session_id: str, metadata: dict) -> None:
+    existing_meta = {field: str(metadata.get(field, ""))[:500] for field in CHECKOUT_FIELDS if metadata.get(field)}
+    existing_meta["email_sent"] = "1"
+    stripe.checkout.Session.modify(session_id, metadata=existing_meta)
+
+
+def email_delivery_job(session_id: str, email: str, metadata: dict) -> None:
+    try:
+        pdf_bytes = build_pdf_bytes(metadata)
+        send_pdf_email(email, pdf_bytes, metadata)
+        mark_email_sent(session_id, metadata)
+        logging.info("PDF email sent to %s for session %s", email, session_id)
+    except Exception:
+        logging.exception("PDF email failed for session %s", session_id)
+
+
 def maybe_send_paid_email(session_id: str, session, metadata: dict) -> dict:
-    """Send PDF email once per paid checkout session."""
+    """Queue PDF email delivery without blocking payment verification."""
     email = metadata.get("customer_email", "").strip()
     if not email:
         return {"emailSent": False, "emailError": "Missing customer email."}
@@ -151,23 +177,16 @@ def maybe_send_paid_email(session_id: str, session, metadata: dict) -> dict:
     if not email_is_configured():
         return {"emailSent": False, "emailError": "Email service is not configured on server."}
 
-    try:
-        pdf_bytes = build_pdf_bytes(metadata)
-        send_pdf_email(email, pdf_bytes, metadata)
-
-        existing_meta = {}
-        raw_meta = session.get("metadata") if hasattr(session, "get") else getattr(session, "metadata", None)
-        if raw_meta:
-            for field in CHECKOUT_FIELDS + ["email_sent"]:
-                value = read_metadata_value(raw_meta, field)
-                if value:
-                    existing_meta[field] = value[:500]
-
-        existing_meta["email_sent"] = "1"
-        stripe.checkout.Session.modify(session_id, metadata=existing_meta)
-        return {"emailSent": True}
-    except Exception as exc:
-        return {"emailSent": False, "emailError": str(exc)}
+    thread = threading.Thread(
+        target=email_delivery_job,
+        args=(session_id, email, dict(metadata)),
+        daemon=True,
+    )
+    thread.start()
+    return {
+        "emailSent": "pending",
+        "emailMessage": "Your PDF is being emailed now. Check inbox and spam in a few minutes.",
+    }
 
 
 app = Flask(__name__, static_folder=str(PUBLIC_DIR), static_url_path="")
