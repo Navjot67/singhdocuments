@@ -295,7 +295,7 @@
       <h1>Rental Agreement PDF Editor</h1>
       <span class="badge">Live Preview + Smart Formatting</span>
     </div>
-    <p>Edit details, pay securely with Stripe, then download your final PDF.</p>
+    <p>Edit details, pay securely with Stripe, then download your PDF — we'll email a copy too.</p>
     <p id="payment-banner" class="payment-banner" hidden></p>
 
     <form id="pdf-form" class="grid">
@@ -326,6 +326,10 @@
       <div>
         <label for="rent_amount">Rent Amount</label>
         <input id="rent_amount" name="rent_amount" />
+      </div>
+      <div class="full">
+        <label for="customer_email">Email (PDF will be sent here)</label>
+        <input id="customer_email" name="customer_email" type="email" placeholder="you@example.com" autocomplete="email" />
       </div>
       <div class="full">
         <button type="submit" id="pay-download-btn">Pay &amp; Download PDF</button>
@@ -362,7 +366,8 @@
       "plate_number",
       "start_date",
       "end_date",
-      "rent_amount"
+      "rent_amount",
+      "customer_email"
     ];
     let priceLabel = "$9.99";
     let paymentsEnabled = false;
@@ -429,10 +434,17 @@
       paymentBanner.textContent = "";
     }
 
+    function isValidEmail(value) {
+      return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(String(value || "").trim());
+    }
+
     function validateRequiredFields(values) {
       const missing = REQUIRED_FIELDS.filter((field) => !String(values[field] || "").trim());
       if (missing.length > 0) {
         throw new Error("Please fill all required fields before payment.");
+      }
+      if (!isValidEmail(values.customer_email)) {
+        throw new Error("Please enter a valid email address.");
       }
     }
 
@@ -444,6 +456,17 @@
         }
       }
       syncSignatureNames();
+    }
+
+    function paymentSuccessMessage(data) {
+      const email = data.metadata?.customer_email || collectValues().customer_email || "";
+      if (data.emailSent) {
+        return `Payment successful. PDF downloaded and emailed to ${email}.`;
+      }
+      if (data.emailError) {
+        return `Payment successful. PDF downloaded. Email not sent: ${data.emailError}`;
+      }
+      return "Payment successful. Your PDF has been downloaded.";
     }
 
     async function downloadPdf() {
@@ -499,7 +522,7 @@
       applyMetadataToForm(data.metadata || {});
       await refreshPreview();
       await downloadPdf();
-      showBanner("Payment successful. Your PDF has been downloaded.", "success");
+      showBanner(paymentSuccessMessage(data), "success");
       window.history.replaceState({}, "", window.location.pathname);
     }
 

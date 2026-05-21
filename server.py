@@ -1,6 +1,12 @@
 import os
+import re
+import smtplib
+from email.mime.application import MIMEApplication
+from email.mime.multipart import MIMEMultipart
+from email.mime.text import MIMEText
 from pathlib import Path
 
+import fitz
 import stripe
 from dotenv import load_dotenv
 from flask import Flask, jsonify, request, send_from_directory
@@ -9,8 +15,16 @@ load_dotenv()
 
 BASE_DIR = Path(__file__).resolve().parent
 PUBLIC_DIR = BASE_DIR / "public"
+TEMPLATE_PDF = PUBLIC_DIR / "agreement-template.pdf"
 
 stripe.api_key = os.environ.get("STRIPE_SECRET_KEY", "")
+EMAIL_RE = re.compile(r"^[^@\s]+@[^@\s]+\.[^@\s]+$")
+
+SMTP_HOST = os.environ.get("SMTP_HOST", "")
+SMTP_PORT = int(os.environ.get("SMTP_PORT", "587"))
+SMTP_USER = os.environ.get("SMTP_USER", "")
+SMTP_PASSWORD = os.environ.get("SMTP_PASSWORD", "")
+EMAIL_FROM = os.environ.get("EMAIL_FROM", SMTP_USER)
 
 
 def parse_price_cents(raw: str) -> int:
@@ -41,21 +55,119 @@ FORM_FIELDS = [
     "rent_amount",
 ]
 
+PDF_FIELDS = FORM_FIELDS + ["owner_signature_name", "renter_signature_name"]
+CHECKOUT_FIELDS = FORM_FIELDS + ["customer_email"]
 
-def extract_form_metadata(session) -> dict:
+
+def is_valid_email(value: str) -> bool:
+    return bool(EMAIL_RE.match((value or "").strip()))
+
+
+def read_metadata_value(meta, field: str) -> str:
+    try:
+        if field in meta:
+            return str(meta[field])
+    except (KeyError, TypeError, AttributeError):
+        pass
+    return ""
+
+
+def extract_checkout_metadata(session) -> dict:
     """Read checkout metadata safely from Stripe SDK objects."""
-    result = {field: "" for field in FORM_FIELDS}
+    result = {field: "" for field in CHECKOUT_FIELDS}
     meta = session.get("metadata") if hasattr(session, "get") else getattr(session, "metadata", None)
     if not meta:
         return result
 
-    for field in FORM_FIELDS:
-        try:
-            if field in meta:
-                result[field] = str(meta[field])
-        except (KeyError, TypeError, AttributeError):
-            continue
+    for field in CHECKOUT_FIELDS:
+        result[field] = read_metadata_value(meta, field)
     return result
+
+
+def build_pdf_bytes(form_data: dict) -> bytes:
+    data = dict(form_data)
+    data["owner_signature_name"] = data.get("plate_owner_name", "")
+    data["renter_signature_name"] = data.get("plate_renter_name", "")
+
+    doc = fitz.open(TEMPLATE_PDF)
+    for page in doc:
+        for widget in page.widgets() or []:
+            name = widget.field_name
+            if name and name in data:
+                widget.field_value = str(data.get(name, ""))
+                widget.update()
+
+    pdf_bytes = doc.tobytes(garbage=4, deflate=True)
+    doc.close()
+    return pdf_bytes
+
+
+def email_is_configured() -> bool:
+    return bool(SMTP_HOST and SMTP_USER and SMTP_PASSWORD and EMAIL_FROM)
+
+
+def send_pdf_email(to_email: str, pdf_bytes: bytes, form_data: dict) -> None:
+    owner = form_data.get("plate_owner_name", "")
+    renter = form_data.get("plate_renter_name", "")
+    plate = form_data.get("plate_number", "")
+
+    message = MIMEMultipart()
+    message["Subject"] = "Your Plate Rental Agreement PDF"
+    message["From"] = EMAIL_FROM
+    message["To"] = to_email
+    message.attach(
+        MIMEText(
+            (
+                "Thank you for your payment.\n\n"
+                f"Attached is your rental agreement PDF.\n\n"
+                f"Owner: {owner}\n"
+                f"Renter: {renter}\n"
+                f"Plate: {plate}\n\n"
+                "— Singh Documents"
+            ),
+            "plain",
+        )
+    )
+
+    attachment = MIMEApplication(pdf_bytes, _subtype="pdf")
+    attachment.add_header("Content-Disposition", "attachment", filename="Plate-Rental-Agreement.pdf")
+    message.attach(attachment)
+
+    with smtplib.SMTP(SMTP_HOST, SMTP_PORT) as smtp:
+        smtp.starttls()
+        smtp.login(SMTP_USER, SMTP_PASSWORD)
+        smtp.send_message(message)
+
+
+def maybe_send_paid_email(session_id: str, session, metadata: dict) -> dict:
+    """Send PDF email once per paid checkout session."""
+    email = metadata.get("customer_email", "").strip()
+    if not email:
+        return {"emailSent": False, "emailError": "Missing customer email."}
+
+    if metadata.get("email_sent") == "1":
+        return {"emailSent": True, "emailNote": "Already sent."}
+
+    if not email_is_configured():
+        return {"emailSent": False, "emailError": "Email service is not configured on server."}
+
+    try:
+        pdf_bytes = build_pdf_bytes(metadata)
+        send_pdf_email(email, pdf_bytes, metadata)
+
+        existing_meta = {}
+        raw_meta = session.get("metadata") if hasattr(session, "get") else getattr(session, "metadata", None)
+        if raw_meta:
+            for field in CHECKOUT_FIELDS + ["email_sent"]:
+                value = read_metadata_value(raw_meta, field)
+                if value:
+                    existing_meta[field] = value[:500]
+
+        existing_meta["email_sent"] = "1"
+        stripe.checkout.Session.modify(session_id, metadata=existing_meta)
+        return {"emailSent": True}
+    except Exception as exc:
+        return {"emailSent": False, "emailError": str(exc)}
 
 
 app = Flask(__name__, static_folder=str(PUBLIC_DIR), static_url_path="")
@@ -79,6 +191,7 @@ def api_config():
             "priceCents": PRICE_CENTS,
             "priceLabel": f"${PRICE_CENTS / 100:,.2f}",
             "paymentsEnabled": bool(stripe.api_key),
+            "emailEnabled": email_is_configured(),
         }
     )
 
@@ -90,18 +203,24 @@ def create_checkout_session():
 
     payload = request.get_json(silent=True) or {}
     missing = [field for field in FORM_FIELDS if not str(payload.get(field, "")).strip()]
+    customer_email = str(payload.get("customer_email", "")).strip()
+
     if missing:
         return jsonify({"error": "Please fill all required fields before payment.", "missing": missing}), 400
+    if not is_valid_email(customer_email):
+        return jsonify({"error": "Please enter a valid email address."}), 400
 
     metadata = {
         field: str(payload.get(field, "")).strip()[:500]
-        for field in FORM_FIELDS
+        for field in CHECKOUT_FIELDS
     }
+    metadata["customer_email"] = customer_email[:500]
 
     try:
         session = stripe.checkout.Session.create(
             mode="payment",
             payment_method_types=["card"],
+            customer_email=customer_email,
             line_items=[
                 {
                     "price_data": {
@@ -140,9 +259,13 @@ def verify_payment():
         return jsonify({"paid": False, "error": str(exc.user_message or exc)}), 400
 
     paid = session.payment_status == "paid"
-    metadata = extract_form_metadata(session) if paid else {}
+    metadata = extract_checkout_metadata(session) if paid else {}
 
-    return jsonify({"paid": paid, "metadata": metadata})
+    response = {"paid": paid, "metadata": metadata}
+    if paid:
+        response.update(maybe_send_paid_email(session_id, session, metadata))
+
+    return jsonify(response)
 
 
 if __name__ == "__main__":

@@ -35,6 +35,11 @@ If creating manually:
 | `STRIPE_PUBLISHABLE_KEY` | `pk_live_...` (or `pk_test_...`) |
 | `STRIPE_PRICE_CENTS` | `399` or `3.99` (means $3.99 — no commas) |
 | `BASE_URL` | `https://singhdocuments.com` |
+| `SMTP_HOST` | `smtp.hostinger.com` (or your email provider SMTP) |
+| `SMTP_PORT` | `587` |
+| `SMTP_USER` | your mailbox email |
+| `SMTP_PASSWORD` | your mailbox/app password |
+| `EMAIL_FROM` | same as `SMTP_USER` (or `noreply@singhdocuments.com`) |
 
 Important: `BASE_URL` must match your live domain exactly (https, no trailing slash).
 
@@ -82,7 +87,7 @@ In Stripe Dashboard (Live mode):
 2. Fill all fields
 3. Click **Pay & Download**
 4. Complete Stripe payment
-5. Confirm redirect back and PDF download
+5. Confirm redirect back, PDF download, and email delivery
 
 ## Troubleshooting
 
