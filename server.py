@@ -1,8 +1,12 @@
+import base64
+import json
 import logging
 import os
 import re
 import smtplib
 import threading
+import urllib.error
+import urllib.request
 from email.mime.application import MIMEApplication
 from email.mime.multipart import MIMEMultipart
 from email.mime.text import MIMEText
@@ -22,11 +26,12 @@ TEMPLATE_PDF = PUBLIC_DIR / "agreement-template.pdf"
 stripe.api_key = os.environ.get("STRIPE_SECRET_KEY", "")
 EMAIL_RE = re.compile(r"^[^@\s]+@[^@\s]+\.[^@\s]+$")
 
+RESEND_API_KEY = os.environ.get("RESEND_API_KEY", "")
 SMTP_HOST = os.environ.get("SMTP_HOST", "")
 SMTP_PORT = int(os.environ.get("SMTP_PORT", "587"))
 SMTP_USER = os.environ.get("SMTP_USER", "")
 SMTP_PASSWORD = os.environ.get("SMTP_PASSWORD", "")
-EMAIL_FROM = os.environ.get("EMAIL_FROM", SMTP_USER)
+EMAIL_FROM = os.environ.get("EMAIL_FROM", SMTP_USER or "Singh Documents <onboarding@resend.dev>")
 SMTP_TIMEOUT = int(os.environ.get("SMTP_TIMEOUT", "12"))
 SMTP_USE_SSL = os.environ.get("SMTP_USE_SSL", "").lower() in {"1", "true", "yes"}
 
@@ -107,31 +112,70 @@ def build_pdf_bytes(form_data: dict) -> bytes:
 
 
 def email_is_configured() -> bool:
+    if RESEND_API_KEY and EMAIL_FROM:
+        return True
     return bool(SMTP_HOST and SMTP_USER and SMTP_PASSWORD and EMAIL_FROM)
 
 
-def send_pdf_email(to_email: str, pdf_bytes: bytes, form_data: dict) -> None:
+def email_provider() -> str:
+    if RESEND_API_KEY:
+        return "resend"
+    if SMTP_HOST and SMTP_USER and SMTP_PASSWORD:
+        return "smtp"
+    return "none"
+
+
+def build_email_text(form_data: dict) -> str:
     owner = form_data.get("plate_owner_name", "")
     renter = form_data.get("plate_renter_name", "")
     plate = form_data.get("plate_number", "")
+    return (
+        "Thank you for your payment.\n\n"
+        "Attached is your rental agreement PDF.\n\n"
+        f"Owner: {owner}\n"
+        f"Renter: {renter}\n"
+        f"Plate: {plate}\n\n"
+        "— Singh Documents"
+    )
 
+
+def send_pdf_email_resend(to_email: str, pdf_bytes: bytes, form_data: dict) -> None:
+    payload = {
+        "from": EMAIL_FROM,
+        "to": [to_email],
+        "subject": "Your Plate Rental Agreement PDF",
+        "text": build_email_text(form_data),
+        "attachments": [
+            {
+                "filename": "Plate-Rental-Agreement.pdf",
+                "content": base64.b64encode(pdf_bytes).decode("ascii"),
+            }
+        ],
+    }
+    request = urllib.request.Request(
+        "https://api.resend.com/emails",
+        data=json.dumps(payload).encode("utf-8"),
+        headers={
+            "Authorization": f"Bearer {RESEND_API_KEY}",
+            "Content-Type": "application/json",
+        },
+        method="POST",
+    )
+    try:
+        with urllib.request.urlopen(request, timeout=30) as response:
+            if response.status >= 300:
+                raise RuntimeError(f"Resend API returned status {response.status}")
+    except urllib.error.HTTPError as exc:
+        body = exc.read().decode("utf-8", errors="replace")
+        raise RuntimeError(f"Resend API error: {body}") from exc
+
+
+def send_pdf_email_smtp(to_email: str, pdf_bytes: bytes, form_data: dict) -> None:
     message = MIMEMultipart()
     message["Subject"] = "Your Plate Rental Agreement PDF"
     message["From"] = EMAIL_FROM
     message["To"] = to_email
-    message.attach(
-        MIMEText(
-            (
-                "Thank you for your payment.\n\n"
-                f"Attached is your rental agreement PDF.\n\n"
-                f"Owner: {owner}\n"
-                f"Renter: {renter}\n"
-                f"Plate: {plate}\n\n"
-                "— Singh Documents"
-            ),
-            "plain",
-        )
-    )
+    message.attach(MIMEText(build_email_text(form_data), "plain"))
 
     attachment = MIMEApplication(pdf_bytes, _subtype="pdf")
     attachment.add_header("Content-Disposition", "attachment", filename="Plate-Rental-Agreement.pdf")
@@ -147,6 +191,14 @@ def send_pdf_email(to_email: str, pdf_bytes: bytes, form_data: dict) -> None:
         smtp.starttls()
         smtp.login(SMTP_USER, SMTP_PASSWORD)
         smtp.send_message(message)
+
+
+def send_pdf_email(to_email: str, pdf_bytes: bytes, form_data: dict) -> None:
+    # Render blocks outbound SMTP; use Resend HTTPS API in production.
+    if RESEND_API_KEY:
+        send_pdf_email_resend(to_email, pdf_bytes, form_data)
+        return
+    send_pdf_email_smtp(to_email, pdf_bytes, form_data)
 
 
 def mark_email_sent(session_id: str, metadata: dict) -> None:
@@ -211,6 +263,7 @@ def api_config():
             "priceLabel": f"${PRICE_CENTS / 100:,.2f}",
             "paymentsEnabled": bool(stripe.api_key),
             "emailEnabled": email_is_configured(),
+            "emailProvider": email_provider(),
         }
     )
 
