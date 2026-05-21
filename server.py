@@ -125,16 +125,14 @@ def build_pdf_bytes(form_data: dict) -> bytes:
 
     doc = fitz.open(TEMPLATE_PDF)
     for page in doc:
-        widgets = list(page.widgets() or [])
-        for widget in widgets:
+        for widget in page.widgets() or []:
             name = widget.field_name
             if name and name in PDF_FIELDS:
                 fill_widget_bold(widget, str(data.get(name, "")))
-        # Flatten fields into page so emailed PDF keeps bold static text.
-        for widget in widgets:
-            page.delete_widget(widget)
 
-    pdf_bytes = doc.tobytes(garbage=4, deflate=True)
+    # Keep filled widget appearances. delete_widget() + garbage collection
+    # (garbage>=1) strips the streams and produces a blank-looking PDF in mail clients.
+    pdf_bytes = doc.tobytes(deflate=True)
     doc.close()
     return pdf_bytes
 
