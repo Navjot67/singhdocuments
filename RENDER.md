@@ -35,11 +35,13 @@ If creating manually:
 | `STRIPE_PUBLISHABLE_KEY` | `pk_live_...` (or `pk_test_...`) |
 | `STRIPE_PRICE_CENTS` | `399` or `3.99` (means $3.99 — no commas) |
 | `BASE_URL` | `https://singhdocuments.com` |
-| `SMTP_HOST` | `smtp.hostinger.com` (or your email provider SMTP) |
+| `SMTP_HOST` | `smtp.gmail.com` |
 | `SMTP_PORT` | `587` |
-| `SMTP_USER` | your mailbox email |
-| `SMTP_PASSWORD` | your mailbox/app password |
-| `EMAIL_FROM` | same as `SMTP_USER` (or `noreply@singhdocuments.com`) |
+| `SMTP_USER` | your Gmail address (e.g. `you@gmail.com`) |
+| `SMTP_PASSWORD` | Gmail **App Password** (16 chars, not your login password) |
+| `EMAIL_FROM` | same Gmail address as `SMTP_USER` |
+| `SMTP_USE_SSL` | `false` (use `true` only if you switch to port `465`) |
+| `SMTP_TIMEOUT` | `12` |
 
 Important: `BASE_URL` must match your live domain exactly (https, no trailing slash).
 
@@ -89,9 +91,31 @@ In Stripe Dashboard (Live mode):
 4. Complete Stripe payment
 5. Confirm redirect back, PDF download, and email delivery
 
+## Gmail setup (for PDF email)
+
+1. Turn on **2-Step Verification** on your Google account
+2. Go to [Google App Passwords](https://myaccount.google.com/apppasswords)
+3. Create app password (Mail → Other → name it `singhdocuments`)
+4. Copy the **16-character password** (no spaces)
+5. In Render Environment, set:
+
+```env
+SMTP_HOST=smtp.gmail.com
+SMTP_PORT=587
+SMTP_USER=you@gmail.com
+SMTP_PASSWORD=abcd efgh ijkl mnop
+EMAIL_FROM=you@gmail.com
+SMTP_USE_SSL=false
+SMTP_TIMEOUT=12
+```
+
+Use the app password with spaces removed in `SMTP_PASSWORD`.
+
 ## Troubleshooting
 
 - **Payment works locally but not live:** check `BASE_URL` and Stripe keys (live vs test)
 - **502 on Render:** open Logs tab, confirm start command uses `$PORT`
 - **Preview works, pay fails:** Stripe env vars missing in Render
 - **Domain not loading:** DNS not propagated yet (wait up to 24h, usually faster)
+- **PDF downloads but no email:** Gmail needs App Password (normal password will fail). Check Render logs for `PDF email failed`
+- **Stuck on verifying payment:** redeploy latest code (email now sends in background)
