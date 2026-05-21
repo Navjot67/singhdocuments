@@ -169,15 +169,13 @@ def send_pdf_email_resend(to_email: str, pdf_bytes: bytes, form_data: dict) -> N
                 raise RuntimeError(f"Resend API returned status {response.status}")
     except urllib.error.HTTPError as exc:
         body = exc.read().decode("utf-8", errors="replace")
-        hint = ""
-        if exc.code == 403:
-            hint = (
-                " Check EMAIL_FROM uses onboarding@resend.dev for testing, or verify "
-                "singhdocuments.com in Resend. In test mode, recipient must be your Resend account email."
-            )
-        if "1010" in body:
-            hint = " Cloudflare blocked request. Confirm RESEND_API_KEY is valid and EMAIL_FROM is verified."
-        raise RuntimeError(f"Resend API HTTP {exc.code}: {body}.{hint}") from exc
+        message = body
+        try:
+            payload = json.loads(body)
+            message = payload.get("message", body)
+        except json.JSONDecodeError:
+            pass
+        raise RuntimeError(f"Resend API HTTP {exc.code}: {message}") from exc
 
 
 def send_pdf_email_smtp(to_email: str, pdf_bytes: bytes, form_data: dict) -> None:

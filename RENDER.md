@@ -119,6 +119,23 @@ EMAIL_FROM=Singh Documents <noreply@singhdocuments.com>
 
 Then you can email any customer address.
 
+### If Resend says "domain is not verified"
+
+Even if Hostinger DNS looks correct, Resend must show domain status **Verified** (green):
+
+1. Resend → **Domains** → `singhdocuments.com` → status must be **Verified**
+2. In Hostinger DNS, add **all** records Resend shows (usually 3 DKIM + 1 SPF/MX)
+3. Wait 15–60 minutes, then click **Verify** again in Resend
+4. `EMAIL_FROM` must match verified domain exactly, e.g. `noreply@singhdocuments.com`
+
+Temporary workaround while DNS propagates:
+
+```env
+EMAIL_FROM=onboarding@resend.dev
+```
+
+(test sends only to your Resend signup email)
+
 ## Troubleshooting
 
 - **Payment works locally but not live:** check `BASE_URL` and Stripe keys (live vs test)
