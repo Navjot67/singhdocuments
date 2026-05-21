@@ -123,7 +123,11 @@ def verify_payment():
         return jsonify({"paid": False, "error": str(exc.user_message or exc)}), 400
 
     paid = session.payment_status == "paid"
-    metadata = {field: session.metadata.get(field, "") for field in FORM_FIELDS} if paid else {}
+    metadata = {}
+    if paid and session.metadata:
+        # Stripe SDK returns metadata as a StripeObject, not a plain dict.
+        raw_metadata = dict(session.metadata)
+        metadata = {field: str(raw_metadata.get(field, "")) for field in FORM_FIELDS}
 
     return jsonify({"paid": paid, "metadata": metadata})
 
