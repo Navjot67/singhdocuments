@@ -100,13 +100,24 @@ RESEND_API_KEY=re_xxxxxxxx
 EMAIL_FROM=Singh Documents <noreply@singhdocuments.com>
 ```
 
-For quick testing before domain verify, you can temporarily use:
+For quick testing before domain verify, use **exactly**:
 
 ```env
-EMAIL_FROM=Singh Documents <onboarding@resend.dev>
+RESEND_API_KEY=re_xxxxxxxx
+EMAIL_FROM=onboarding@resend.dev
 ```
 
-(Resend test mode only sends to your own inbox.)
+Rules in Resend test mode:
+- `EMAIL_FROM` must be `onboarding@resend.dev` (no custom domain yet)
+- Recipient (`customer_email` in form) must be the **same email you used to sign up for Resend**
+
+After domain `singhdocuments.com` is verified in Resend, switch to:
+
+```env
+EMAIL_FROM=Singh Documents <noreply@singhdocuments.com>
+```
+
+Then you can email any customer address.
 
 ## Troubleshooting
 
