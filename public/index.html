@@ -2,7 +2,9 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
+  <meta name="theme-color" content="#0b1020" />
+  <meta name="apple-mobile-web-app-capable" content="yes" />
   <title>Plate Rental Agreement PDF</title>
   <style>
     :root {
@@ -13,7 +15,11 @@
     body {
       margin: 0;
       padding: 24px;
+      padding-left: max(24px, env(safe-area-inset-left));
+      padding-right: max(24px, env(safe-area-inset-right));
+      padding-bottom: max(24px, env(safe-area-inset-bottom));
       min-height: 100vh;
+      -webkit-text-size-adjust: 100%;
       background:
         radial-gradient(1200px 600px at 10% -10%, rgba(99, 102, 241, 0.25), transparent 60%),
         radial-gradient(900px 500px at 100% 0%, rgba(14, 165, 233, 0.22), transparent 50%),
@@ -85,10 +91,11 @@
       padding: 12px 13px;
       border: 1px solid rgba(148, 163, 184, 0.45);
       border-radius: 10px;
-      font-size: 14px;
+      font-size: 16px;
       color: #f8fafc;
       background: rgba(15, 23, 42, 0.7);
       transition: border-color 180ms ease, box-shadow 180ms ease, transform 180ms ease;
+      min-height: 48px;
     }
     #plate_number {
       text-transform: uppercase;
@@ -114,10 +121,14 @@
       border-radius: 12px;
       background: linear-gradient(135deg, #2563eb, #06b6d4);
       color: #f8fafc;
-      padding: 12px 18px;
-      font-size: 14px;
+      padding: 14px 18px;
+      font-size: 16px;
       font-weight: 700;
       cursor: pointer;
+      width: 100%;
+      min-height: 48px;
+      touch-action: manipulation;
+      -webkit-tap-highlight-color: transparent;
       transition: transform 180ms ease, box-shadow 180ms ease, filter 180ms ease;
       box-shadow: 0 10px 20px rgba(14, 165, 233, 0.25);
     }
@@ -125,6 +136,13 @@
       transform: translateY(-1px);
       filter: brightness(1.05);
       box-shadow: 0 14px 28px rgba(14, 165, 233, 0.32);
+    }
+    @media (hover: none) {
+      button:hover {
+        transform: none;
+        filter: none;
+        box-shadow: 0 10px 20px rgba(14, 165, 233, 0.25);
+      }
     }
     button:active {
       transform: translateY(0);
@@ -168,11 +186,17 @@
       display: flex;
       justify-content: space-between;
       align-items: center;
+      flex-wrap: wrap;
+      gap: 8px;
       padding: 10px 12px;
       border-bottom: 1px solid rgba(148, 163, 184, 0.35);
       font-size: 13px;
       color: #cbd5e1;
       background: rgba(15, 23, 42, 0.55);
+    }
+    #preview-status {
+      font-size: 12px;
+      opacity: 0.9;
     }
     .preview-frame {
       width: 100%;
@@ -283,8 +307,89 @@
       .wrap {
         padding: 20px;
       }
-      .preview-frame {
-        height: 520px;
+      .preview-frame,
+      .preview-fallback {
+        height: min(68vh, 520px);
+      }
+    }
+    @media (max-width: 600px) {
+      body {
+        padding: 12px;
+        padding-left: max(12px, env(safe-area-inset-left));
+        padding-right: max(12px, env(safe-area-inset-right));
+        padding-bottom: max(12px, env(safe-area-inset-bottom));
+      }
+      body::before,
+      body::after {
+        width: 220px;
+        height: 220px;
+      }
+      .wrap {
+        padding: 16px;
+        border-radius: 14px;
+      }
+      h1 {
+        font-size: 1.45rem;
+        line-height: 1.25;
+      }
+      p {
+        font-size: 0.95rem;
+        line-height: 1.5;
+      }
+      .title-row {
+        flex-direction: column;
+        align-items: flex-start;
+        gap: 10px;
+      }
+      .badge {
+        font-size: 11px;
+        white-space: normal;
+        text-align: center;
+      }
+      label {
+        font-size: 14px;
+      }
+      .grid {
+        gap: 14px;
+      }
+      .payment-banner {
+        font-size: 14px;
+        line-height: 1.45;
+      }
+      .preview-wrap {
+        margin-top: 16px;
+      }
+      .preview-canvas-wrap {
+        padding: 10px;
+        min-height: 240px;
+        -webkit-overflow-scrolling: touch;
+      }
+      .preview-frame,
+      .preview-fallback {
+        height: min(62vh, 440px);
+      }
+      .preview-overlay {
+        inset: 10px;
+      }
+      .preview-overlay::before {
+        font-size: clamp(12px, 3.5vw, 18px);
+        letter-spacing: 1px;
+        white-space: normal;
+        text-align: center;
+        width: 92%;
+        line-height: 1.3;
+      }
+      input:focus {
+        transform: none;
+      }
+    }
+    @media (max-width: 380px) {
+      h1 {
+        font-size: 1.3rem;
+      }
+      .preview-head {
+        flex-direction: column;
+        align-items: flex-start;
       }
     }
   </style>
@@ -309,27 +414,27 @@
       </div>
       <div>
         <label for="agreement_date">Agreement Date</label>
-        <input id="agreement_date" name="agreement_date" />
+        <input id="agreement_date" name="agreement_date" type="text" inputmode="numeric" placeholder="MMDDYYYY or May 20, 2026" autocomplete="off" />
       </div>
       <div>
         <label for="plate_number">Plate Number</label>
-        <input id="plate_number" name="plate_number" />
+        <input id="plate_number" name="plate_number" type="text" autocapitalize="characters" autocomplete="off" />
       </div>
       <div>
         <label for="start_date">Start Date</label>
-        <input id="start_date" name="start_date" />
+        <input id="start_date" name="start_date" type="text" inputmode="numeric" placeholder="MMDDYYYY or May 20, 2026" autocomplete="off" />
       </div>
       <div>
         <label for="end_date">End Date</label>
-        <input id="end_date" name="end_date" />
+        <input id="end_date" name="end_date" type="text" inputmode="numeric" placeholder="MMDDYYYY or May 20, 2026" autocomplete="off" />
       </div>
       <div>
         <label for="rent_amount">Rent Amount</label>
-        <input id="rent_amount" name="rent_amount" />
+        <input id="rent_amount" name="rent_amount" type="text" inputmode="decimal" placeholder="325 or $325" autocomplete="off" />
       </div>
       <div class="full">
         <label for="customer_email">Email (PDF will be sent here)</label>
-        <input id="customer_email" name="customer_email" type="email" placeholder="you@example.com" autocomplete="email" />
+        <input id="customer_email" name="customer_email" type="email" inputmode="email" autocapitalize="off" autocorrect="off" spellcheck="false" placeholder="you@example.com" autocomplete="email" />
       </div>
       <div class="full">
         <button type="submit" id="pay-download-btn">Pay &amp; Download PDF</button>
@@ -663,9 +768,11 @@
       const loadingTask = window.pdfjsLib.getDocument({ data: pdfBytes });
       const pdf = await loadingTask.promise;
       const page = await pdf.getPage(1);
-      const containerWidth = previewCanvas.parentElement.clientWidth - 20;
+      const parent = previewCanvas.parentElement;
+      const horizontalPadding = window.innerWidth <= 600 ? 20 : 28;
+      const containerWidth = Math.max(260, (parent?.clientWidth || window.innerWidth) - horizontalPadding);
       const baseViewport = page.getViewport({ scale: 1 });
-      const scale = Math.max(0.6, containerWidth / baseViewport.width);
+      const scale = Math.max(0.45, containerWidth / baseViewport.width);
       const viewport = page.getViewport({ scale });
 
       const ctx = previewCanvas.getContext("2d");
@@ -714,6 +821,26 @@
       }
       previewTimer = setTimeout(refreshPreview, 250);
     }
+
+    let resizePreviewTimer = null;
+    function queuePreviewResize() {
+      if (!latestPdfBytes) {
+        return;
+      }
+      if (resizePreviewTimer) {
+        clearTimeout(resizePreviewTimer);
+      }
+      resizePreviewTimer = setTimeout(async () => {
+        try {
+          await renderPreview(latestPdfBytes);
+        } catch (_error) {
+          /* keep current preview on resize errors */
+        }
+      }, 200);
+    }
+
+    window.addEventListener("resize", queuePreviewResize);
+    window.addEventListener("orientationchange", queuePreviewResize);
 
     formElement.addEventListener("input", (event) => {
       if (event.target.id === "plate_owner_name" || event.target.id === "plate_renter_name") {
