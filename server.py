@@ -41,6 +41,23 @@ FORM_FIELDS = [
     "rent_amount",
 ]
 
+
+def extract_form_metadata(session) -> dict:
+    """Read checkout metadata safely from Stripe SDK objects."""
+    result = {field: "" for field in FORM_FIELDS}
+    meta = session.get("metadata") if hasattr(session, "get") else getattr(session, "metadata", None)
+    if not meta:
+        return result
+
+    for field in FORM_FIELDS:
+        try:
+            if field in meta:
+                result[field] = str(meta[field])
+        except (KeyError, TypeError, AttributeError):
+            continue
+    return result
+
+
 app = Flask(__name__, static_folder=str(PUBLIC_DIR), static_url_path="")
 
 
@@ -123,11 +140,7 @@ def verify_payment():
         return jsonify({"paid": False, "error": str(exc.user_message or exc)}), 400
 
     paid = session.payment_status == "paid"
-    metadata = {}
-    if paid and session.metadata:
-        # Stripe SDK returns metadata as a StripeObject, not a plain dict.
-        raw_metadata = dict(session.metadata)
-        metadata = {field: str(raw_metadata.get(field, "")) for field in FORM_FIELDS}
+    metadata = extract_form_metadata(session) if paid else {}
 
     return jsonify({"paid": paid, "metadata": metadata})
 
